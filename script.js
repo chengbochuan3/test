@@ -1,4 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // 关卡配置
+    const levels = [
+        { targetScore: 100, timeLimit: 60, colors: 6 },
+        { targetScore: 200, timeLimit: 60, colors: 5 },
+        { targetScore: 300, timeLimit: 60, colors: 5 },
+        { targetScore: 400, timeLimit: 60, colors: 4 },
+        { targetScore: 500, timeLimit: 60, colors: 4 },
+        { targetScore: 600, timeLimit: 60, colors: 3 }
+    ];
+
     // 游戏配置
     const config = {
         boardSize: 8,
@@ -11,29 +21,63 @@ document.addEventListener('DOMContentLoaded', () => {
         board: [],
         selectedTile: null,
         score: 0,
-        isProcessing: false
+        isProcessing: false,
+        currentLevel: 1,
+        timeRemaining: 60,
+        timerInterval: null,
+        gameActive: false
     };
 
     // DOM元素
     const gameBoard = document.getElementById('game-board');
     const scoreDisplay = document.getElementById('score');
+    const targetScoreDisplay = document.getElementById('target-score');
+    const levelDisplay = document.getElementById('level');
+    const timeDisplay = document.getElementById('time');
     const restartButton = document.getElementById('restart-button');
+    const nextLevelButton = document.getElementById('next-level-button');
+    const levelMessageDisplay = document.getElementById('level-message');
 
     // 初始化游戏
-    function initGame() {
+    function initGame(level = 1) {
+        // 清除之前的计时器
+        if (gameState.timerInterval) {
+            clearInterval(gameState.timerInterval);
+        }
+        
+        // 设置当前关卡
+        gameState.currentLevel = level;
+        const levelConfig = levels[level - 1];
+        
+        // 根据关卡设置游戏参数
+        config.tileColors = config.tileColors.slice(0, levelConfig.colors);
+        
+        // 初始化游戏状态
         gameState.board = createBoard();
         gameState.score = 0;
         gameState.selectedTile = null;
         gameState.isProcessing = false;
+        gameState.timeRemaining = levelConfig.timeLimit;
+        gameState.gameActive = true;
         
+        // 更新UI
         renderBoard();
         updateScore();
+        updateLevel();
+        updateTimer();
+        
+        // 隐藏下一关按钮
+        nextLevelButton.style.display = 'none';
+        levelMessageDisplay.textContent = '';
         
         // 检查初始局面是否有可消除的组合
         const initialMatches = findAllMatches();
         if (initialMatches.length > 0) {
             shuffleBoard();
         }
+        
+        // 启动计时器
+        startTimer();
     }
 
     // 打乱游戏板
@@ -91,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 处理点击事件
     function handleTileClick(row, col) {
-        if (gameState.isProcessing) return;
+        if (gameState.isProcessing || !gameState.gameActive) return;
         
         const clickedTile = gameState.board[row][col];
         
@@ -251,6 +295,9 @@ document.addEventListener('DOMContentLoaded', () => {
         gameState.score += matches.length * 10;
         updateScore();
         
+        // 检查是否达到目标分数
+        checkLevelComplete();
+        
         // 动画完成后移除方块
         setTimeout(() => {
             matches.forEach(({row, col}) => {
@@ -318,10 +365,73 @@ document.addEventListener('DOMContentLoaded', () => {
     // 更新分数显示
     function updateScore() {
         scoreDisplay.textContent = gameState.score;
+        const currentLevel = gameState.currentLevel - 1;
+        targetScoreDisplay.textContent = levels[currentLevel].targetScore;
     }
 
-    // 重新开始游戏
-    restartButton.addEventListener('click', initGame);
+    // 更新关卡显示
+    function updateLevel() {
+        levelDisplay.textContent = gameState.currentLevel;
+    }
+
+    // 更新计时器显示
+    function updateTimer() {
+        timeDisplay.textContent = gameState.timeRemaining;
+    }
+
+    // 启动计时器
+    function startTimer() {
+        gameState.timerInterval = setInterval(() => {
+            gameState.timeRemaining--;
+            updateTimer();
+            
+            if (gameState.timeRemaining <= 0) {
+                endLevel(false);
+            }
+        }, 1000);
+    }
+
+    // 检查关卡是否完成
+    function checkLevelComplete() {
+        const currentLevel = gameState.currentLevel - 1;
+        if (gameState.score >= levels[currentLevel].targetScore) {
+            endLevel(true);
+        }
+    }
+
+    // 结束关卡
+    function endLevel(isSuccess) {
+        // 停止游戏
+        gameState.gameActive = false;
+        clearInterval(gameState.timerInterval);
+        
+        // 显示结果信息
+        if (isSuccess) {
+            levelMessageDisplay.textContent = `恭喜！你通过了第${gameState.currentLevel}关！`;
+            levelMessageDisplay.className = 'level-message success';
+            
+            // 如果还有下一关，显示下一关按钮
+            if (gameState.currentLevel < levels.length) {
+                nextLevelButton.style.display = 'inline-block';
+            } else {
+                levelMessageDisplay.textContent += ' 你已完成所有关卡！';
+            }
+        } else {
+            levelMessageDisplay.textContent = `时间到！你未能通过第${gameState.currentLevel}关。`;
+            levelMessageDisplay.className = 'level-message failure';
+        }
+    }
+
+    // 进入下一关
+    function nextLevel() {
+        if (gameState.currentLevel < levels.length) {
+            initGame(gameState.currentLevel + 1);
+        }
+    }
+
+    // 事件监听
+    restartButton.addEventListener('click', () => initGame(gameState.currentLevel));
+    nextLevelButton.addEventListener('click', nextLevel);
 
     // 初始化游戏
     try {

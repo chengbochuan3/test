@@ -28,11 +28,12 @@ h1 {
 
 .game-info {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     margin-bottom: 20px;
+    padding: 0 20px;
 }
 
-.score {
+.score, .level-info, .timer {
     font-size: 1.2rem;
     font-weight: bold;
     color: #333;
@@ -80,6 +81,13 @@ h1 {
     100% { transform: scale(0); }
 }
 
+.buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
 button {
     padding: 10px 20px;
     font-size: 1rem;
@@ -93,4 +101,30 @@ button {
 
 button:hover {
     background-color: #45a049;
+}
+
+.level-message {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 10px 0 20px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.level-message.success {
+    background-color: #dff2bf;
+    color: #4F8A10;
+}
+
+.level-message.failure {
+    background-color: #ffbaba;
+    color: #D8000C;
+}
+
+#next-level-button {
+    background-color: #3357FF;
+}
+
+#next-level-button:hover {
+    background-color: #2a46cc;
 } 

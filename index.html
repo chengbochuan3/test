@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>消消乐小游戏</title>
+    <link rel="stylesheet" href="style.css">
     <style>
         * {
             margin: 0;
@@ -41,7 +42,19 @@
             margin-bottom: 20px;
         }
 
+        .level-info {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
         .score {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .timer {
             font-size: 1.2rem;
             font-weight: bold;
             color: #333;
@@ -106,382 +119,18 @@
     <div class="container">
         <h1>消消乐小游戏</h1>
         <div class="game-info">
-            <div class="score">分数: <span id="score">0</span></div>
+            <div class="level-info">关卡: <span id="level">1</span></div>
+            <div class="score">分数: <span id="score">0</span> / <span id="target-score">100</span></div>
+            <div class="timer">时间: <span id="time">60</span>秒</div>
         </div>
         <div id="game-board" class="game-board"></div>
-        <button id="restart-button">重新开始</button>
+        <div id="level-message" class="level-message"></div>
+        <div class="buttons">
+            <button id="restart-button">重新开始</button>
+            <button id="next-level-button" style="display: none;">下一关</button>
+        </div>
         <div id="status"></div>
     </div>
-
-    <script>
-        // 游戏主逻辑
-        window.onload = function() {
-            const statusElement = document.getElementById('status');
-            
-            try {
-                // 游戏配置
-                const config = {
-                    boardSize: 8,
-                    tileColors: ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33F3', '#33FFF3'],
-                    minimumMatchLength: 3
-                };
-
-                // 游戏状态
-                let gameState = {
-                    board: [],
-                    selectedTile: null,
-                    score: 0,
-                    isProcessing: false
-                };
-
-                // DOM元素
-                const gameBoard = document.getElementById('game-board');
-                const scoreDisplay = document.getElementById('score');
-                const restartButton = document.getElementById('restart-button');
-
-                if (!gameBoard || !scoreDisplay || !restartButton) {
-                    throw new Error("无法找到必要的DOM元素");
-                }
-
-                statusElement.textContent = "正在初始化游戏...";
-
-                // 创建游戏板
-                function createBoard() {
-                    const board = [];
-                    
-                    for (let row = 0; row < config.boardSize; row++) {
-                        board[row] = [];
-                        for (let col = 0; col < config.boardSize; col++) {
-                            const colorIndex = Math.floor(Math.random() * config.tileColors.length);
-                            board[row][col] = {
-                                color: config.tileColors[colorIndex],
-                                row,
-                                col
-                            };
-                        }
-                    }
-                    
-                    return board;
-                }
-
-                // 渲染游戏板
-                function renderBoard() {
-                    gameBoard.innerHTML = '';
-                    
-                    for (let row = 0; row < config.boardSize; row++) {
-                        for (let col = 0; col < config.boardSize; col++) {
-                            const tile = document.createElement('div');
-                            tile.className = 'tile';
-                            tile.style.backgroundColor = gameState.board[row][col].color;
-                            tile.dataset.row = row;
-                            tile.dataset.col = col;
-                            
-                            tile.addEventListener('click', function() {
-                                handleTileClick(parseInt(this.dataset.row), parseInt(this.dataset.col));
-                            });
-                            
-                            gameBoard.appendChild(tile);
-                        }
-                    }
-                }
-
-                // 检查是否有匹配
-                function checkForMatches(board) {
-                    // 水平检查
-                    for (let row = 0; row < config.boardSize; row++) {
-                        for (let col = 0; col < config.boardSize - 2; col++) {
-                            if (board[row][col].color &&
-                                board[row][col].color === board[row][col+1].color &&
-                                board[row][col].color === board[row][col+2].color) {
-                                return true;
-                            }
-                        }
-                    }
-                    
-                    // 垂直检查
-                    for (let col = 0; col < config.boardSize; col++) {
-                        for (let row = 0; row < config.boardSize - 2; row++) {
-                            if (board[row][col].color &&
-                                board[row][col].color === board[row+1][col].color &&
-                                board[row][col].color === board[row+2][col].color) {
-                                return true;
-                            }
-                        }
-                    }
-                    
-                    return false;
-                }
-
-                // 创建有效游戏板（没有初始匹配）
-                function createValidBoard() {
-                    let board;
-                    let attempts = 0;
-                    const maxAttempts = 100;
-                    
-                    do {
-                        board = createBoard();
-                        attempts++;
-                        if (attempts >= maxAttempts) {
-                            // 防止无限循环
-                            console.warn("达到最大尝试次数，使用当前游戏板");
-                            break;
-                        }
-                    } while (checkForMatches(board));
-                    
-                    return board;
-                }
-
-                // 初始化游戏
-                function initGame() {
-                    statusElement.textContent = "正在创建游戏板...";
-                    gameState.board = createValidBoard();
-                    gameState.score = 0;
-                    gameState.selectedTile = null;
-                    gameState.isProcessing = false;
-                    
-                    scoreDisplay.textContent = "0";
-                    renderBoard();
-                    statusElement.textContent = "";
-                }
-
-                // 高亮选中的方块
-                function highlightTile(row, col, isSelected) {
-                    const tiles = gameBoard.getElementsByClassName('tile');
-                    const index = row * config.boardSize + col;
-                    
-                    if (tiles[index]) {
-                        if (isSelected) {
-                            tiles[index].classList.add('selected');
-                        } else {
-                            tiles[index].classList.remove('selected');
-                        }
-                    }
-                }
-
-                // 检查两个方块是否相邻
-                function areAdjacent(tile1, tile2) {
-                    const rowDiff = Math.abs(tile1.row - tile2.row);
-                    const colDiff = Math.abs(tile1.col - tile2.col);
-                    
-                    return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
-                }
-
-                // 交换两个方块
-                function swapTiles(tile1, tile2) {
-                    // 交换颜色
-                    const tempColor = tile1.color;
-                    tile1.color = tile2.color;
-                    tile2.color = tempColor;
-                    
-                    // 更新显示
-                    const tiles = gameBoard.getElementsByClassName('tile');
-                    const index1 = tile1.row * config.boardSize + tile1.col;
-                    const index2 = tile2.row * config.boardSize + tile2.col;
-                    
-                    if (tiles[index1]) tiles[index1].style.backgroundColor = tile1.color;
-                    if (tiles[index2]) tiles[index2].style.backgroundColor = tile2.color;
-                }
-
-                // 查找所有匹配
-                function findAllMatches() {
-                    const matches = [];
-                    
-                    // 水平匹配
-                    for (let row = 0; row < config.boardSize; row++) {
-                        for (let col = 0; col < config.boardSize - 2; col++) {
-                            const color = gameState.board[row][col].color;
-                            if (!color) continue;
-                            
-                            let matchLength = 1;
-                            while (col + matchLength < config.boardSize && 
-                                   gameState.board[row][col + matchLength].color === color) {
-                                matchLength++;
-                            }
-                            
-                            if (matchLength >= 3) {
-                                for (let i = 0; i < matchLength; i++) {
-                                    const matchInfo = {row, col: col + i};
-                                    
-                                    // 检查是否已经添加
-                                    let alreadyAdded = false;
-                                    for (let j = 0; j < matches.length; j++) {
-                                        if (matches[j].row === matchInfo.row && matches[j].col === matchInfo.col) {
-                                            alreadyAdded = true;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    if (!alreadyAdded) {
-                                        matches.push(matchInfo);
-                                    }
-                                }
-                                col += matchLength - 1;
-                            }
-                        }
-                    }
-                    
-                    // 垂直匹配
-                    for (let col = 0; col < config.boardSize; col++) {
-                        for (let row = 0; row < config.boardSize - 2; row++) {
-                            const color = gameState.board[row][col].color;
-                            if (!color) continue;
-                            
-                            let matchLength = 1;
-                            while (row + matchLength < config.boardSize && 
-                                   gameState.board[row + matchLength][col].color === color) {
-                                matchLength++;
-                            }
-                            
-                            if (matchLength >= 3) {
-                                for (let i = 0; i < matchLength; i++) {
-                                    const matchInfo = {row: row + i, col};
-                                    
-                                    // 检查是否已经添加
-                                    let alreadyAdded = false;
-                                    for (let j = 0; j < matches.length; j++) {
-                                        if (matches[j].row === matchInfo.row && matches[j].col === matchInfo.col) {
-                                            alreadyAdded = true;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    if (!alreadyAdded) {
-                                        matches.push(matchInfo);
-                                    }
-                                }
-                                row += matchLength - 1;
-                            }
-                        }
-                    }
-                    
-                    return matches;
-                }
-
-                // 消除匹配并计分
-                function removeMatches(matches) {
-                    if (matches.length === 0) {
-                        gameState.isProcessing = false;
-                        return;
-                    }
-                    
-                    // 更新分数
-                    gameState.score += matches.length * 10;
-                    scoreDisplay.textContent = gameState.score;
-                    
-                    // 标记匹配的方块为空
-                    matches.forEach(({row, col}) => {
-                        if (gameState.board[row] && gameState.board[row][col]) {
-                            gameState.board[row][col].color = null;
-                        }
-                    });
-                    
-                    // 让方块下落并填充空白
-                    setTimeout(() => {
-                        // 方块下落
-                        for (let col = 0; col < config.boardSize; col++) {
-                            // 从底部向上处理
-                            for (let row = config.boardSize - 1; row >= 0; row--) {
-                                // 如果当前位置是空的
-                                if (gameState.board[row][col].color === null) {
-                                    // 从当前位置向上找非空方块
-                                    for (let sourceRow = row - 1; sourceRow >= 0; sourceRow--) {
-                                        if (gameState.board[sourceRow][col].color !== null) {
-                                            // 将上面的方块下移
-                                            gameState.board[row][col].color = gameState.board[sourceRow][col].color;
-                                            gameState.board[sourceRow][col].color = null;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // 填充顶部空白
-                            for (let row = 0; row < config.boardSize; row++) {
-                                if (gameState.board[row][col].color === null) {
-                                    const colorIndex = Math.floor(Math.random() * config.tileColors.length);
-                                    gameState.board[row][col].color = config.tileColors[colorIndex];
-                                }
-                            }
-                        }
-                        
-                        // 重新渲染游戏板
-                        renderBoard();
-                        
-                        // 检查是否有新匹配
-                        setTimeout(() => {
-                            const newMatches = findAllMatches();
-                            if (newMatches.length > 0) {
-                                removeMatches(newMatches);
-                            } else {
-                                gameState.isProcessing = false;
-                            }
-                        }, 300);
-                    }, 300);
-                }
-
-                // 处理点击事件
-                function handleTileClick(row, col) {
-                    if (gameState.isProcessing) return;
-                    
-                    const clickedTile = gameState.board[row][col];
-                    
-                    // 如果没有选中的方块，选中当前方块
-                    if (!gameState.selectedTile) {
-                        gameState.selectedTile = clickedTile;
-                        highlightTile(row, col, true);
-                        return;
-                    }
-                    
-                    // 如果点击的是已选中的方块，取消选中
-                    if (gameState.selectedTile === clickedTile) {
-                        gameState.selectedTile = null;
-                        highlightTile(row, col, false);
-                        return;
-                    }
-                    
-                    // 如果点击的方块与已选中方块相邻
-                    if (areAdjacent(gameState.selectedTile, clickedTile)) {
-                        gameState.isProcessing = true;
-                        
-                        // 交换方块
-                        swapTiles(gameState.selectedTile, clickedTile);
-                        
-                        // 检查是否形成匹配
-                        const matches = findAllMatches();
-                        if (matches.length > 0) {
-                            // 有匹配，移除方块
-                            highlightTile(gameState.selectedTile.row, gameState.selectedTile.col, false);
-                            gameState.selectedTile = null;
-                            removeMatches(matches);
-                        } else {
-                            // 没有匹配，交换回来
-                            setTimeout(() => {
-                                swapTiles(gameState.selectedTile, clickedTile);
-                                highlightTile(gameState.selectedTile.row, gameState.selectedTile.col, false);
-                                gameState.selectedTile = null;
-                                gameState.isProcessing = false;
-                            }, 300);
-                        }
-                    } else {
-                        // 如果不相邻，选中新方块
-                        highlightTile(gameState.selectedTile.row, gameState.selectedTile.col, false);
-                        gameState.selectedTile = clickedTile;
-                        highlightTile(row, col, true);
-                    }
-                }
-                
-                // 设置重新开始按钮
-                restartButton.addEventListener('click', initGame);
-                
-                // 启动游戏
-                initGame();
-                statusElement.textContent = "游戏已准备就绪！";
-                
-            } catch (error) {
-                console.error("游戏初始化失败:", error);
-                statusElement.textContent = "游戏加载失败: " + error.message;
-            }
-        };
-    </script>
+    <script src="script.js"></script>
 </body>
 </html> 
