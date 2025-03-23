@@ -9,24 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
         { targetScore: 600, timeLimit: 60, colors: 3 }
     ];
 
-    // 动物图标配置
-    const animalIcons = [
-        { emoji: '🐱', imageUrl: 'https://img.icons8.com/color/96/000000/cat.png' },
-        { emoji: '🐶', imageUrl: 'https://img.icons8.com/color/96/000000/dog.png' },
-        { emoji: '🐰', imageUrl: 'https://img.icons8.com/color/96/000000/rabbit.png' },
-        { emoji: '🦊', imageUrl: 'https://img.icons8.com/color/96/000000/fox.png' },
-        { emoji: '🐻', imageUrl: 'https://img.icons8.com/color/96/000000/bear.png' },
-        { emoji: '🐼', imageUrl: 'https://img.icons8.com/color/96/000000/panda.png' },
-        { emoji: '🐨', imageUrl: 'https://img.icons8.com/color/96/000000/koala.png' },
-        { emoji: '🦁', imageUrl: 'https://img.icons8.com/color/96/000000/lion.png' }
-    ];
-
     // 游戏配置
     const config = {
         boardSize: 8,
         tileColors: ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33F3', '#33FFF3'],
-        minimumMatchLength: 3,
-        useEmoji: true // 设置为 true 使用emoji, false 使用图片URL
+        minimumMatchLength: 3
     };
 
     // 游戏状态
@@ -63,8 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const levelConfig = levels[level - 1];
         
         // 根据关卡设置游戏参数
-        const colors = levelConfig.colors;
-        config.tileColors = config.tileColors.slice(0, colors);
+        config.tileColors = config.tileColors.slice(0, levelConfig.colors);
         
         // 初始化游戏状态
         gameState.board = createBoard();
@@ -114,10 +100,9 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let row = 0; row < config.boardSize; row++) {
             board[row] = [];
             for (let col = 0; col < config.boardSize; col++) {
-                const iconIndex = Math.floor(Math.random() * config.tileColors.length);
+                const colorIndex = Math.floor(Math.random() * config.tileColors.length);
                 board[row][col] = {
-                    color: config.tileColors[iconIndex],
-                    animalIcon: animalIcons[iconIndex],
+                    color: config.tileColors[colorIndex],
                     row,
                     col
                 };
@@ -137,24 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let col = 0; col < config.boardSize; col++) {
                 const tile = document.createElement('div');
                 tile.className = 'tile';
-                
-                // 设置背景色为浅色
-                tile.style.backgroundColor = '#f8f8f8';
-                
-                // 根据设置选择使用emoji或图片
-                if (config.useEmoji) {
-                    // 使用emoji
-                    tile.textContent = gameState.board[row][col].animalIcon.emoji;
-                    tile.classList.add('emoji-tile');
-                } else {
-                    // 使用图片
-                    const img = document.createElement('img');
-                    img.src = gameState.board[row][col].animalIcon.imageUrl;
-                    img.alt = gameState.board[row][col].animalIcon.emoji;
-                    img.classList.add('animal-icon');
-                    tile.appendChild(img);
-                }
-                
+                tile.style.backgroundColor = gameState.board[row][col].color;
                 tile.dataset.row = row;
                 tile.dataset.col = col;
                 
@@ -234,15 +202,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 交换两个方块
     function swapTiles(tile1, tile2) {
-        // 交换颜色和图标
+        // 交换颜色
         const tempColor = tile1.color;
-        const tempAnimalIcon = tile1.animalIcon;
-        
         tile1.color = tile2.color;
-        tile1.animalIcon = tile2.animalIcon;
-        
         tile2.color = tempColor;
-        tile2.animalIcon = tempAnimalIcon;
         
         // 更新DOM
         updateTile(tile1.row, tile1.col);
@@ -254,24 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tileElements = document.querySelectorAll('.tile');
         const index = row * config.boardSize + col;
         if (tileElements[index]) {
-            const tile = tileElements[index];
-            
-            // 清空现有内容
-            tile.innerHTML = '';
-            
-            if (gameState.board[row][col].animalIcon) {
-                if (config.useEmoji) {
-                    // 使用emoji
-                    tile.textContent = gameState.board[row][col].animalIcon.emoji;
-                } else {
-                    // 使用图片
-                    const img = document.createElement('img');
-                    img.src = gameState.board[row][col].animalIcon.imageUrl;
-                    img.alt = gameState.board[row][col].animalIcon.emoji;
-                    img.classList.add('animal-icon');
-                    tile.appendChild(img);
-                }
-            }
+            tileElements[index].style.backgroundColor = gameState.board[row][col].color;
         }
     }
 
@@ -357,7 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
             matches.forEach(({row, col}) => {
                 if (gameState.board[row] && gameState.board[row][col]) {
                     gameState.board[row][col].color = null;
-                    gameState.board[row][col].animalIcon = null;
                     updateTile(row, col);
                 }
             });
@@ -375,16 +320,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // 方块下落
         for (let col = 0; col < config.boardSize; col++) {
             for (let row = config.boardSize - 1; row >= 0; row--) {
-                if (!gameState.board[row][col].animalIcon || gameState.board[row][col].color === null) {
+                if (gameState.board[row][col].color === null) {
                     // 寻找该列上方最近的非空方块
                     let sourceRow = row - 1;
                     while (sourceRow >= 0) {
-                        if (gameState.board[sourceRow][col].animalIcon && gameState.board[sourceRow][col].color !== null) {
+                        if (gameState.board[sourceRow][col].color !== null) {
                             // 移动方块
                             gameState.board[row][col].color = gameState.board[sourceRow][col].color;
-                            gameState.board[row][col].animalIcon = gameState.board[sourceRow][col].animalIcon;
                             gameState.board[sourceRow][col].color = null;
-                            gameState.board[sourceRow][col].animalIcon = null;
                             hasMoved = true;
                             break;
                         }
@@ -392,10 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     
                     // 如果没有找到非空方块，生成新方块
-                    if (!gameState.board[row][col].animalIcon || gameState.board[row][col].color === null) {
-                        const iconIndex = Math.floor(Math.random() * config.tileColors.length);
-                        gameState.board[row][col].color = config.tileColors[iconIndex];
-                        gameState.board[row][col].animalIcon = animalIcons[iconIndex];
+                    if (gameState.board[row][col].color === null) {
+                        const colorIndex = Math.floor(Math.random() * config.tileColors.length);
+                        gameState.board[row][col].color = config.tileColors[colorIndex];
                         hasMoved = true;
                     }
                     
@@ -490,19 +432,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 事件监听
     restartButton.addEventListener('click', () => initGame(gameState.currentLevel));
     nextLevelButton.addEventListener('click', nextLevel);
-
-    // 添加切换图标类型的按钮
-    const toggleButton = document.createElement('button');
-    toggleButton.id = 'toggle-icon-mode';
-    toggleButton.textContent = config.useEmoji ? '切换到图片模式' : '切换到表情符号模式';
-    toggleButton.addEventListener('click', () => {
-        config.useEmoji = !config.useEmoji;
-        toggleButton.textContent = config.useEmoji ? '切换到图片模式' : '切换到表情符号模式';
-        renderBoard();
-    });
-    
-    // 将按钮添加到按钮组
-    document.querySelector('.buttons').appendChild(toggleButton);
 
     // 初始化游戏
     try {

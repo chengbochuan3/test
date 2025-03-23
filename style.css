@@ -53,37 +53,22 @@ h1 {
 .tile {
     width: 50px;
     height: 50px;
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #f8f8f8;
-    border: 2px solid #ddd;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .tile:hover {
     transform: scale(0.95);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    opacity: 0.9;
 }
 
 .tile.selected {
     transform: scale(0.9);
-    box-shadow: 0 0 8px rgba(73, 160, 244, 0.8);
-    border-color: #49a0f4;
-}
-
-.emoji-tile {
-    font-size: 30px;
-    line-height: 1;
-}
-
-.animal-icon {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
 .tile.match {
@@ -91,9 +76,9 @@ h1 {
 }
 
 @keyframes match-animation {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.7; }
-    100% { transform: scale(0); opacity: 0; }
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(0); }
 }
 
 .buttons {
@@ -142,13 +127,4 @@ button:hover {
 
 #next-level-button:hover {
     background-color: #2a46cc;
-}
-
-#toggle-icon-mode {
-    background-color: #9c27b0;
-    margin-top: 10px;
-}
-
-#toggle-icon-mode:hover {
-    background-color: #7b1fa2;
 } 
